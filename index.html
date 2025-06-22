@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>カード記憶トレーニング</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding-top: 30px;
+    }
+    #cardDisplay img {
+      height: 200px;
+    }
+    #timer {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin: 10px;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 10px;
+    }
+    .card {
+      border: 2px solid #ccc;
+      border-radius: 6px;
+      margin: 5px;
+      cursor: pointer;
+      width: 60px;
+      height: 90px;
+      background-size: cover;
+      background-position: center;
+    }
+    .card.selected {
+      border-color: #00f;
+      box-shadow: 0 0 5px #00f;
+    }
+    .result {
+      font-size: 18px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="timer">05:00</div>
+  <div id="cardDisplay"><img id="cardImage" src="" alt="カード表示"></div>
+  <button onclick="showNextCard()">次へ</button>
+  <button onclick="startRecall()" id="recallBtn" disabled>想起フェーズへ</button>
+
+  <div id="recallPhase" style="display:none;">
+    <h2>覚えた順にカードを選んでください</h2>
+    <div class="grid" id="cardChoices"></div>
+    <div class="grid" id="userAnswer"></div>
+    <button onclick="checkAnswer()">採点する</button>
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    const suits = ['S', 'H', 'D', 'C'];
+    const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+    let deck = suits.flatMap(suit => ranks.map(rank => rank + suit));
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+
+    let index = 0;
+    let shownCards = [];
+
+    function cardToFilename(card) {
+      return `./cards/${card}.png`; // 相対パスに変更
+    }
+
+    function showNextCard() {
+      if (index < deck.length) {
+        const card = deck[index++];
+        shownCards.push(card);
+        const filename = cardToFilename(card);
+        document.getElementById("cardImage").src = filename;
+        if (index === deck.length) {
+          document.getElementById("recallBtn").disabled = false;
+        }
+      } else {
+        document.getElementById("cardImage").src = "";
+        document.getElementById("cardDisplay").innerHTML = "<strong>すべて表示しました</strong>";
+        document.getElementById("recallBtn").disabled = false;
+      }
+    }
+
+    function startRecall() {
+      document.getElementById("recallPhase").style.display = "block";
+      document.getElementById("cardDisplay").style.display = "none";
+      document.getElementById("recallBtn").style.display = "none";
+      document.getElementById("timer").style.display = "none";
+
+      const choices = [...deck];
+      const cardChoicesDiv = document.getElementById("cardChoices");
+      cardChoicesDiv.innerHTML = '';
+      choices.forEach(card => {
+        const div = document.createElement("div");
+        div.classList.add("card");
+        div.style.backgroundImage = `url(${cardToFilename(card)})`;
+        div.onclick = () => selectCard(div, card);
+        cardChoicesDiv.appendChild(div);
+      });
+    }
+
+    let userSelected = [];
+
+    function selectCard(div, card) {
+      if (div.classList.contains("selected")) return;
+      div.classList.add("selected");
+      userSelected.push(card);
+
+      const answerDiv = document.getElementById("userAnswer");
+      const show = document.createElement("div");
+      show.classList.add("card");
+      show.style.backgroundImage = `url(${cardToFilename(card)})`;
+      answerDiv.appendChild(show);
+    }
+
+    function checkAnswer() {
+      let correct = 0;
+      for (let i = 0; i < shownCards.length; i++) {
+        if (userSelected[i] === shownCards[i]) correct++;
+      }
+      const resultText = `正解数: ${correct} / ${shownCards.length}`;
+      document.getElementById("result").innerText = resultText;
+    }
+
+    // タイマー
+    let seconds = 300;
+    const timer = document.getElementById("timer");
+    function updateTimer() {
+      const min = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const sec = (seconds % 60).toString().padStart(2, '0');
+      timer.innerText = `${min}:${sec}`;
+      if (seconds > 0) seconds--;
+    }
+    setInterval(updateTimer, 1000);
+  </script>
+</body>
+</html>
